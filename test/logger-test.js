@@ -113,6 +113,64 @@ vows.describe('winton/logger').addBatch({
     }
   }
 }).addBatch({
+  "winston.Logger#withContext": helpers.testWithContext(
+    new (winston.Logger)({ 
+      transports: [
+        new (winston.transports.Console)()
+      ] 
+    })
+  )
+}).addBatch({
+  "winston defaultLogger": {
+    topic: winston,
+    "should response to withContext, push and pop methods": function (logger) {
+      assert.isFunction(logger.withContext);
+      assert.isFunction(logger.push);
+      assert.isFunction(logger.pop);
+    },
+    "deals withContext, just as normal logger, so": helpers.testWithContext(winston)
+  }
+}).addBatch({
+  "When winston.Logger with transports": {
+    topic: new (winston.Logger)({ 
+      transports: [
+        new (winston.transports.Console)(),
+      ] 
+    }),
+    "calls push() method": {
+      topic: function (logger) {
+        return logger.push('con').push('t').push('ext');
+      },
+      "it should add specified context to the stack": function (logger) {
+        assert.length(logger.context, 3);
+      },
+      "and then calls log() method": {
+        topic: function (logger) {
+          logger.log('info', 'test message', this.callback);
+        },
+        "message should be prefixed with specified context": function (err, lvl, msg) {
+          assert.match(msg, /^\[con::t::ext\]/);
+        }
+      },
+      "and then calls pop() method": {
+        topic: function (logger) {
+          return logger.pop();
+        },
+        "should pop one last context out": function (logger) {
+          assert.length(logger.context, 2);
+        },
+        "until there no more contexts left, calling log() method": {
+          topic: function (logger) {
+            logger.pop(-1).log('info', 'test message', this.callback);
+          },
+          "should log message without any prefix": function (err, lvl, msg) {
+            assert.equal(msg, 'test message');
+          }
+        }
+      }
+    }
+  }
+}).addBatch({
   "The winston logger": {
     topic: new (winston.Logger)({ 
       transports: [
